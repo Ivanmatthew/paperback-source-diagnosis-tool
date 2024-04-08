@@ -1,0 +1,8 @@
+- Create pyinstaller spec file
+- Create binary installer for distribution with InstallForge
+- Create README.md with:
+	- Purpose of
+		- Related links
+	- Features
+	- Installation guide
+	- Contributors

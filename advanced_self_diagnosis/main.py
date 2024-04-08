@@ -1,16 +1,20 @@
 import signal
 import subprocess
-import ctypes
+from os import path
 import platform
+import ctypes
 import regex as re
 import requests as req
 import sys
 import socket
 import json
-from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QTextEdit, QComboBox, QSplitter
-from PySide6.QtGui import QTextCursor, QTextCharFormat, QColorConstants
+from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QTextEdit, QComboBox, QMessageBox
+from PySide6.QtGui import QTextCursor, QTextCharFormat, QColorConstants, QIcon
 from PySide6.QtCore import Qt, QProcess
 import PySide6.QtAsyncio as QtAsyncio
+
+base_dir = path.dirname(__file__)
+
 
 def detect_mitm():
     try:
@@ -34,6 +38,14 @@ def scrape_urls(code):
             urls.append(match.group(1))
     
     return urls
+
+def get_internal_ip():
+    address_info = socket.getaddrinfo(socket.gethostname(), '8080')
+    address_info = [x for x in address_info if x[4][0].startswith('192.168.')]
+    if len(address_info) == 0:
+        return None
+    
+    return address_info[0][4][0]
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -126,7 +138,7 @@ class MainWindow(QMainWindow):
 
     def start_diagnosis(self):
         self.hookprocess_output()
-        self.process.setArguments(['-s', 'mitm_log_target.py'])
+        self.process.setArguments(['-s', path.join(base_dir, 'mitm_log_target.py')])
         self.process.setProgram('mitmdump')
         self.process.start()
 
@@ -138,7 +150,7 @@ class MainWindow(QMainWindow):
         # Therefore we can only assume port 8080 is used for mitmproxy.
         # get the IP address of the machine
 
-        self.output.append(f"mitmdump has started. Please make sure to set your device is connected to the same network as this computer, and the device's proxy is set to {socket.gethostbyname(socket.gethostname())}:8080")
+        self.output.append(f"mitmdump has started. Please make sure to set your device is connected to the same network as this computer, and the device's proxy is set to {get_internal_ip()}:8080")
 
     def start_on_source_button_clicked(self):
         self.start_on_source_button.setDisabled(True)
@@ -221,13 +233,19 @@ class MainWindow(QMainWindow):
 
         self.main_content_layout.addLayout(self.frame_2_layout, 1)
 
+def set_icons(app):
+    if platform.system() == "Windows":
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("me.ivanmatthew.paperback.selfdiagnosis")
+    app_icon = QIcon(path.join(base_dir, 'app.ico'))
+    app.setWindowIcon(app_icon)
+
 def main():
     has_mitm = detect_mitm()
 
     if has_mitm:
         print("Mitmproxy is installed!")
-
         app = QApplication(sys.argv)
+        set_icons(app)
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         window = MainWindow()
         window.show()
@@ -242,12 +260,15 @@ def main():
             # with open('latest.json', 'w') as file:
             #     file.write('{"target_url": "https://example.com"}') 
     else:
-        os = platform.system()
-        if os == "Windows":
-            ctypes.windll.user32.MessageBoxW(0, "Mitmproxy is not installed. Please install it to use this tool.", "Mitmproxy Not Installed", 0)
-        elif os == "Darwin":
-            subprocess.run(['osascript', '-e', f'display dialog "Mitmproxy is not installed. Please install it to use this tool." with title "Mitmproxy Not Installed"'], check=True)
-        else:
-            print("For this tool to work, you will need to install mitmproxy.")
+        # os = platform.system()
+        # if os == "Windows":
+        #     ctypes.windll.user32.MessageBoxW(0, "Mitmproxy is not installed. Please install it to use this tool.", "Mitmproxy Not Installed", 0)
+        # elif os == "Darwin":
+        #     subprocess.run(['osascript', '-e', f'display dialog "Mitmproxy is not installed. Please install it to use this tool." with title "Mitmproxy Not Installed"'], check=True)
+        # else:
+        #     print("For this tool to work, you will need to install mitmproxy.")
+        QMessageBox.critical(None, "Mitmproxy Not Installed", "Mitmproxy is not installed. Please install it to use this tool.")
+        sys.exit(1)
 
-main()
+if __name__ == "__main__":
+    main()

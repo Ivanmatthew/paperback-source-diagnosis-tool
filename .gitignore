@@ -160,3 +160,6 @@ cython_debug/
 #.idea/
 
 advanced_self_diagnosis/*.json
+
+# Tests are negligible since most is GUI based and has little to no decision nodes (or make your own)
+tests/*

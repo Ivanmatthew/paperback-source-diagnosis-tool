@@ -1,4 +1,4 @@
-from main import main
+from advanced_self_diagnosis.main import main
 
 def run():
     main()
