@@ -44,7 +44,7 @@ def create_target_json(target_urls):
 def scrape_urls(code):
     urls = []
     for line in code.split("\n"):
-        match = re.search(r"[\*\/].*|https?://([^\}\'\"\r\n\t\f\v ]*?\..*?)(?<![/';])/+?", line)
+        match = re.search(r"[\*\/].*|https?://([^\}\'\"\r\n\t\f\v ]*?\..*?)[/';]+?", line)
         if match and match.group(1):
             urls.append(match.group(1))
     
