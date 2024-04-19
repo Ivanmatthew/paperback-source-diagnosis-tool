@@ -1,3 +1,4 @@
+import re
 import subprocess
 import webbrowser
 import platform
@@ -7,9 +8,21 @@ def is_windows():
 
 def detect_mitmproxy():
     try:
-        subprocess.run(['mitmproxy', '--version'], capture_output=True, check=True)
+        output = subprocess.run(['mitmproxy', '--version'], capture_output=True, check=True)
+        strout = output.stdout.decode()
+        version = re.search(r'Mitmproxy: (\d+\.\d+\.\d+)', strout)
+        if version:
+            print('Found mitmproxy version:', version.group(1))
+        else:
+            print('mitmproxy version not found, got:', strout)
+
         return True
-    except subprocess.CalledProcessError:
+    except Exception as e:
+        if isinstance(e, subprocess.CalledProcessError) or isinstance(e, FileNotFoundError):
+            print('mitmproxy not installed')
+        else:
+            print('Unknown error:', e)
+
         return False
 
 def is_compatible_win_version():
@@ -29,7 +42,7 @@ def main():
         print("mitmproxy not found.")
         print("Please install mitmproxy. For your convenience, a popup window of microsoft store will be opened.")
         # The microsoft store link for mitmproxy
-        webbrowser.open('ms-windows-store://pdp/?ProductId=9NWNDLQMNZD7')
+        webbrowser.open('ms-windows-store://pdp/?ProductId=9NWNDLQMNZD7&mode=mini')
         print("After installation, please run this script again.")
         return
     print("mitmproxy found.")
@@ -49,3 +62,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    input("Press Enter to exit...")

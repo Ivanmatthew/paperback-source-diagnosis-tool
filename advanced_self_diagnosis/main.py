@@ -8,6 +8,7 @@ import requests as req
 import sys
 import socket
 import json
+import webbrowser
 from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QTextEdit, QComboBox, QMessageBox
 from PySide6.QtGui import QTextCursor, QTextCharFormat, QColorConstants, QIcon
 from PySide6.QtCore import Qt, QProcess
@@ -18,9 +19,21 @@ base_dir = path.dirname(__file__)
 
 def detect_mitm():
     try:
-        subprocess.run(['mitmproxy', '--version'], capture_output=True, check=True)
+        output = subprocess.run(['mitmproxy', '--version'], capture_output=True, check=True)
+        strout = output.stdout.decode()
+        version = re.search(r'Mitmproxy: (\d+\.\d+\.\d+)', strout)
+        if version:
+            print('Found mitmproxy version:', version.group(1))
+        else:
+            print('mitmproxy version not found, got:', strout)
+
         return True
-    except subprocess.CalledProcessError:
+    except Exception as e:
+        if isinstance(e, subprocess.CalledProcessError) or isinstance(e, FileNotFoundError):
+            print('mitmproxy not installed')
+        else:
+            print('Unknown error:', e)
+
         return False
 
 def create_target_json(target_urls):
@@ -33,7 +46,7 @@ def create_target_json(target_urls):
 def scrape_urls(code):
     urls = []
     for line in code.split("\n"):
-        match = re.search(r"[\*\/].*|(https?://[^\}\'\"\r\n\t\f\v ]*)", line)
+        match = re.search(r"[\*\/].*|(https?://[^\}\'\"\r\n\t\f\v ]*?)/", line)
         if match and match.group(1):
             urls.append(match.group(1))
     
@@ -158,11 +171,11 @@ class MainWindow(QMainWindow):
         source_name = self.source_select_dropdown.currentText()
         source = self.repo_sources[source_name]
         self.output.append("")
-        self.output.append(f"Selected source: {source['name']}")
+        self.output.append(f"Selected source: {source['id']}")
         self.output.append(f"Source URL: {source['websiteBaseURL']}")
         self.output.append("Fetching source code...")
 
-        response = req.get(self.repo_base_url + "/" + source['name'] + "/index.js")
+        response = req.get(self.repo_base_url + "/" + source['id'] + "/index.js")
         if response.status_code == 200:
             self.output.append("Successfully fetched source code.")
             urls = scrape_urls(response.text)
@@ -223,8 +236,8 @@ class MainWindow(QMainWindow):
                         return
                     
                     for source in data['sources']:
-                        self.repo_sources[source['name']] = source
-                        self.source_select_dropdown.addItem(source['name'])
+                        self.repo_sources[source['id']] = source
+                        self.source_select_dropdown.addItem(source['id'])
                 except req.exceptions.JSONDecodeError:
                     self.output.append("Failed to fetch versioning.json.")
                     return
@@ -241,10 +254,10 @@ def set_icons(app):
 
 def main():
     has_mitm = detect_mitm()
+    app = QApplication(sys.argv)
 
     if has_mitm:
         print("Mitmproxy is installed!")
-        app = QApplication(sys.argv)
         set_icons(app)
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         window = MainWindow()
@@ -260,7 +273,7 @@ def main():
             # with open('latest.json', 'w') as file:
             #     file.write('{"target_url": "https://example.com"}') 
     else:
-        # os = platform.system()
+        os = platform.system()
         # if os == "Windows":
         #     ctypes.windll.user32.MessageBoxW(0, "Mitmproxy is not installed. Please install it to use this tool.", "Mitmproxy Not Installed", 0)
         # elif os == "Darwin":
@@ -268,6 +281,13 @@ def main():
         # else:
         #     print("For this tool to work, you will need to install mitmproxy.")
         QMessageBox.critical(None, "Mitmproxy Not Installed", "Mitmproxy is not installed. Please install it to use this tool.")
+        if os == "Windows":
+            webbrowser.open('ms-windows-store://pdp/?ProductId=9NWNDLQMNZD7&mode=mini')
+        elif os == "Darwin":
+            webbrowser.open('https://docs.mitmproxy.org/stable/overview-installation/#macos')
+        else:
+            print("For this tool to work, you will need to install mitmproxy.")
+            print("Navigate to https://docs.mitmproxy.org/stable/overview-installation/ to find instructions on how to install mitmproxy.")
         sys.exit(1)
 
 if __name__ == "__main__":
