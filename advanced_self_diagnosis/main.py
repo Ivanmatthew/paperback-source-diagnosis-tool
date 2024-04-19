@@ -12,8 +12,6 @@ import webbrowser
 from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout, QWidget, QTextEdit, QComboBox, QMessageBox
 from PySide6.QtGui import QTextCursor, QTextCharFormat, QColorConstants, QIcon
 from PySide6.QtCore import Qt, QProcess
-import PySide6.QtAsyncio as QtAsyncio
-
 base_dir = path.dirname(__file__)
 
 
