@@ -3,10 +3,10 @@ name: Release Workflow
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
     branches:
-      - main
+      - master
 
 jobs:
   build:
@@ -37,3 +37,9 @@ jobs:
       - name: Package with NSIS
         run: |
           makensis .nsi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: paperback-selfdiagnosis-tool-setup
+          path: paperback-selfdiagnosis-tool-setup.exe
