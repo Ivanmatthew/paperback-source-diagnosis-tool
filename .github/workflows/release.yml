@@ -14,7 +14,7 @@ jobs:
 
     steps:
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5.1.0
         with:
           python-version: '3.12'
 
@@ -23,8 +23,21 @@ jobs:
           pip install poetry
           poetry config virtualenvs.create false
 
+      - name: Install 7zip
+        run: |
+          choco install 7zip -y
+
+      - name: Install nsProcess plugin for NSIS
+        shell: pwsh
+        run: |
+          curl -o nsProcess.zip https://nsis.sourceforge.io/mediawiki/images/1/18/NsProcess.zip
+          7z x nsProcess.zip
+          Copy-Item ".\Include\nsProcess.nsh" -Destination "$env:ProgramFiles (x86)\NSIS\Include\nsProcess.nsh"
+          Copy-Item ".\Plugin\nsProcess.dll" -Destination "$env:ProgramFiles (x86)\NSIS\Plugins\x86-ansi\nsProcess.dll"
+          Copy-Item ".\Plugin\nsProcessW.dll" -Destination "$env:ProgramFiles (x86)\NSIS\Plugins\x86-unicode\nsProcess.dll"   
+
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4.1.1
 
       - name: Install dependencies
         run: |
@@ -34,15 +47,12 @@ jobs:
         run: |
           poetry run dist
 
-      - name: Install NSIS
-        run: choco install nsis -y
-
       - name: Package with NSIS
         run: |
           makensis .nsi
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4.3.2
         with:
-          name: paperback-selfdiagnosis-tool-setup
+          name: paperback-selfdiagnosis-tool-setup.exe
           path: paperback-selfdiagnosis-tool-setup.exe
